@@ -221,9 +221,9 @@ python benchmark.py \
 If this code is useful for your research, please cite:
 
 ```bibtex
-@inproceedings{wang2026georwkv,
+@inproceedings{liu2026georwkv,
   title={GeoRWKV: Imposing Geometric Constraints on Spectral Sequences via LiDAR-Informed State Evolution},
-  author={Wang, Zhenduo and Liu, Xu and Li, Lingling and Zhang, Dan and Tang, Xu and Jiao, Licheng and Liu, Fang},
+  author={Liu, Xu and Wang, Zhenduo and Li, Lingling and Zhang, Dan and Tang, Xu and Jiao, Licheng and Liu, Fang},
   booktitle={IEEE International Geoscience and Remote Sensing Symposium (IGARSS)},
   year={2026}
 }
