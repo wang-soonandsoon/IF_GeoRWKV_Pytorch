@@ -1,35 +1,73 @@
+<div align="center">
+
 # GeoRWKV
 
-Official PyTorch implementation of **GeoRWKV: Imposing Geometric Constraints on Spectral Sequences via LiDAR-Informed State Evolution**.
+**Imposing Geometric Constraints on Spectral Sequences via LiDAR-Informed State Evolution**
 
-GeoRWKV is a LiDAR-guided RWKV framework for hyperspectral-LiDAR classification. It serializes local HSI patches with a center-out spiral order and uses LiDAR-derived geometric discontinuities to modulate RWKV state decay, reducing cross-boundary spectral leakage.
+[![IGARSS 2026](https://img.shields.io/badge/IGARSS%202026-Oral-2f6fed)](https://2026.ieeeigarss.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-Implementation-ee4c2c)](https://pytorch.org/)
+[![Task](https://img.shields.io/badge/Task-HSI--LiDAR%20Classification-0f766e)](#)
+[![Status](https://img.shields.io/badge/Code-Available-brightgreen)](#)
 
-**IGARSS 2026 Oral**
+Official PyTorch implementation of **GeoRWKV**, a LiDAR-guided RWKV framework for hyperspectral-LiDAR land-cover classification.
 
-## Highlights
+</div>
 
-- Center-out spiral serialization for patch tokens.
-- LiDAR-informed log-gate injected into RWKV state decay.
-- Geometry-aware bidirectional WKV fusion.
-- Soft router between a local MLP path and the geometry-aware fusion path.
-- RWKV-style TimeMix/ChannelMix with sigmoid-parameterized mixing ratios.
-- Fast sequence-native implementation with a PyTorch reference path and optional CUDA WKV forward kernel.
+## Overview
+
+Linear-time sequence models such as RWKV are efficient backbones for hyperspectral image classification, but flattening a 2D patch into a 1D sequence can propagate recurrent states across physical object boundaries. GeoRWKV addresses this issue by using LiDAR geometry as a control signal for RWKV state evolution.
+
+The model serializes local HSI-LiDAR patches with a center-out spiral order, derives a LiDAR gradient gate along the token sequence, and injects this gate into the RWKV decay term to suppress cross-boundary spectral leakage.
+
+## Key Features
+
+| Component | Purpose |
+| --- | --- |
+| Center-out spiral serialization | Preserves local continuity around the target pixel. |
+| LiDAR-informed dynamic decay | Attenuates recurrent state carry-over across geometric boundaries. |
+| Bidirectional WKV fusion | Aggregates context in forward and backward spiral directions. |
+| Soft router | Adapts between a local MLP path and a geometry-aware fusion path. |
+| RWKV-style TimeMix/ChannelMix | Provides efficient sequence and channel mixing for multimodal patches. |
+| Fast implementation | Uses a sequence-native dataflow and optional CUDA WKV forward kernel. |
+
+## Model Path
+
+```text
+HSI patch ── 1x1 stem ── spiral tokens ──┐
+                                          ├── GeoRWKV blocks ── center token ── classifier
+LiDAR patch ─ 1x1 stem ─ spiral tokens ──┘
+        │
+        └── LiDAR gradient log-gate ── dynamic RWKV decay
+```
+
+Inside each GeoRWKV block:
+
+```text
+TokenShift2D
+  ├── local MLP path
+  └── LiDAR-gated bidirectional RWKV fusion path
+          ↓
+      soft router
+          ↓
+      RWKV ChannelMix
+```
 
 ## Repository Structure
 
 ```text
 .
 ├── model/
-│   ├── GeoRwkvV2_MixSigmoid_WeakBeta.py
-│   ├── reference_slow.py
+│   ├── GeoRwkvV2_MixSigmoid_WeakBeta.py   # optimized sequence-native GeoRWKV
+│   ├── reference_slow.py                   # slower reference implementation
 │   └── ops/
-│       └── wkv_dynamic.py
+│       ├── wkv_dynamic.py                  # dynamic WKV dispatcher
+│       └── csrc/                           # optional CUDA forward kernel
 ├── setting/
-│   ├── dataLoader.py
-│   ├── options.py
+│   ├── dataLoader.py                       # HSI-LiDAR dataloaders and PCA cache
+│   ├── options.py                          # CLI options
 │   └── utils.py
 ├── tests/
-│   └── parity_test.py
+│   └── parity_test.py                      # fast/reference parity check
 ├── train.py
 ├── infer.py
 ├── benchmark.py
@@ -45,9 +83,9 @@ cd IF_GeoRWKV_Pytorch
 pip install -r requirements.txt
 ```
 
-The CUDA WKV extension is JIT-compiled automatically when available. If the extension cannot be built, the code falls back to the PyTorch implementation.
+The CUDA WKV extension is JIT-compiled automatically when CUDA and a compatible compiler are available. If the extension cannot be built, GeoRWKV falls back to the PyTorch WKV implementation.
 
-Useful environment flags:
+Useful flags:
 
 ```bash
 GEORWKV_DISABLE_CUDA_EXT=1     # force PyTorch reference WKV
@@ -55,9 +93,9 @@ GEORWKV_WKV_VERBOSE_BUILD=1    # show CUDA extension build logs
 GEORWKV_WKV_BUILD_DIR=<path>   # custom extension build/cache directory
 ```
 
-## Data Layout
+## Data Preparation
 
-Datasets are not included in this repository. Place the `.mat` files as follows:
+Datasets are not included in this repository. Place `.mat` files under `<data_root>`:
 
 ```text
 <data_root>/
@@ -78,11 +116,11 @@ Datasets are not included in this repository. Place the `.mat` files as follows:
     trento_lidar.mat
 ```
 
-Dataset-specific keys, class counts, PCA dimensions, and patch sizes are configured in `dataset_info.yaml`.
+Dataset metadata is configured in `dataset_info.yaml`, including class counts, PCA dimensions, patch sizes, and `.mat` keys.
 
-## Quick Check
+## Quick Start
 
-Run a dry training step:
+Run one forward/backward step:
 
 ```bash
 python train.py \
@@ -92,15 +130,21 @@ python train.py \
   --dry_run
 ```
 
-Check numerical parity between the optimized implementation and the slower reference implementation:
+Check fast/reference numerical parity:
 
 ```bash
 python tests/parity_test.py
 ```
 
+Expected output:
+
+```text
+All parity checks passed.
+```
+
 ## Training
 
-Example command matching the main paper setting:
+Paper-style Houston2013 run:
 
 ```bash
 python train.py \
@@ -117,7 +161,7 @@ python train.py \
   --cache_pca 1
 ```
 
-For Trento:
+Paper-style Trento run:
 
 ```bash
 python train.py \
@@ -134,6 +178,12 @@ python train.py \
   --cache_pca 1
 ```
 
+Training outputs are written under `checkpoints/` by default. PCA and standardized LiDAR arrays are cached under:
+
+```text
+<data_root>/<dataset>/.cache/
+```
+
 ## Inference
 
 ```bash
@@ -148,15 +198,23 @@ python infer.py \
 
 ## Benchmark
 
+Compare the optimized model with the slower reference implementation:
+
 ```bash
-python benchmark.py --device cuda:0 --patch 11 --batch 128 --iters 50 --amp 1
+python benchmark.py \
+  --device cuda:0 \
+  --patch 11 \
+  --batch 128 \
+  --iters 50 \
+  --amp 1
 ```
 
-## Notes
+## Implementation Notes
 
 - The optimized model keeps the same learnable parameter names as `model/reference_slow.py`, so compatible checkpoints can be loaded with `strict=True`.
-- Cached PCA and standardized LiDAR arrays are written to `<data_root>/<dataset>/.cache/`.
-- No checkpoints, datasets, or generated reports are included in this repository.
+- The CUDA kernel accelerates the dynamic WKV forward pass. Backward remains autograd-safe through PyTorch recomputation.
+- Set `GEORWKV_DISABLE_CUDA_EXT=1` for maximum portability.
+- No datasets, checkpoints, generated maps, or reports are included in this repository.
 
 ## Citation
 
@@ -170,6 +228,10 @@ If this code is useful for your research, please cite:
   year={2026}
 }
 ```
+
+## Acknowledgements
+
+This repository builds on the RWKV-style sequence modeling idea and targets multimodal remote sensing classification with HSI-LiDAR data.
 
 ## License
 
