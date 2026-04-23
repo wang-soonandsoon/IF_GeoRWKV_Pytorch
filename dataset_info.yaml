@@ -1,0 +1,71 @@
+Houston2013:
+  hsi_channel_num: 144
+  slar_channel_num: 1
+  info:
+  - houston_gt.mat
+  - houston_hsi.mat
+  - houston_index.mat
+  - houston_lidar.mat
+  keys:
+  - houston_hsi
+  - houston_lidar
+  - houston_gt
+  - houston_train
+  - houston_test
+  - houston_all
+  image_h: 349
+  image_w: 1905
+  pca_num: 35
+  num_classes: 15
+  embed_dim: 256
+  window_size: 11
+  d_state: 16
+  num_layer: 1
+  expand: 0.75
+Houston2018:
+  hsi_channel_num: 50
+  slar_channel_num: 1
+  info:
+  - houston_gt.mat
+  - houston_hsi.mat
+  - houston_index.mat
+  - houston_lidar.mat
+  keys:
+  - houston_hsi
+  - houston_lidar
+  - houston_gt
+  - houston_train
+  - houston_test
+  - houston_all
+  image_h: 1202
+  image_w: 4768
+  pca_num: 30
+  num_classes: 20
+  num_heads: 8
+  expand: 0.75
+  window_size: 13
+  d_state: 16
+  num_layer: 2
+Trento:
+  hsi_channel_num: 63
+  slar_channel_num: 1
+  info:
+  - trento_gt.mat
+  - trento_hsi.mat
+  - trento_index.mat
+  - trento_lidar.mat
+  keys:
+  - trento_hsi
+  - trento_lidar
+  - trento_gt
+  - trento_train
+  - trento_test
+  - trento_all
+  image_h: 166
+  image_w: 600
+  pca_num: 30
+  num_classes: 6
+  window_size: 11
+  d_state: 16
+  expand: 0.75
+  num_layer: 1
