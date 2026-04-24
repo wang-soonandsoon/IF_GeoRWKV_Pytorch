@@ -233,6 +233,3 @@ If this code is useful for your research, please cite:
 
 This repository builds on the RWKV-style sequence modeling idea and targets multimodal remote sensing classification with HSI-LiDAR data.
 
-## License
-
-The license for this repository has not been finalized yet. Please contact the authors before redistributing or reusing the code.
